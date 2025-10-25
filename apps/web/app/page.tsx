@@ -161,6 +161,72 @@ export default function Home() {
         }
     };
 
+    const sendStreamingAIGeneration = async () => {
+        if (!aiPrompt || !documentId || !userId) {
+            alert("Please fill in all required fields");
+            return;
+        }
+
+        try {
+            const endpoint = aiType === "suggestion" ? "/ai/suggest/stream" : "/ai/chat/stream";
+            const response = await fetch(`http://localhost:3001${endpoint}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    documentId,
+                    userId,
+                    prompt: aiPrompt,
+                    visibility: aiType === "chat" ? aiVisibility : undefined,
+                    context: {
+                        selectedText: "Sample selected text",
+                        cursorPosition: 100,
+                        range: { anchor: 90, head: 110 }
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error("No reader available");
+            }
+
+            let fullContent = "";
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                fullContent += chunk;
+
+                // Update result with streaming content
+                setResult({
+                    type: "streaming",
+                    content: fullContent,
+                    endpoint: endpoint,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            // Final result
+            setResult({
+                type: "streaming_complete",
+                content: fullContent,
+                endpoint: endpoint,
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            setResult({ error: "Failed to stream AI generation", details: error instanceof Error ? error.message : String(error) });
+        }
+    };
+
     const sendSocketMessage = () => {
         if (!socketRef.current || !socketRef.current.connected) {
             alert("Socket not connected");
@@ -330,8 +396,11 @@ export default function Home() {
                         </label>
                     </div>
 
-                    <button onClick={sendAIGeneration} disabled={!aiPrompt} style={{ padding: "0.5rem 1rem" }}>
-                        Generate {aiType === "suggestion" ? "Suggestion" : "Chat"}
+                    <button onClick={sendAIGeneration} disabled={!aiPrompt} style={{ padding: "0.5rem 1rem", marginRight: "0.5rem" }}>
+                        Generate {aiType === "suggestion" ? "Suggestion" : "Chat"} (Socket.IO)
+                    </button>
+                    <button onClick={sendStreamingAIGeneration} disabled={!aiPrompt} style={{ padding: "0.5rem 1rem" }}>
+                        Stream {aiType === "suggestion" ? "Suggestion" : "Chat"} (HTTP)
                     </button>
                 </div>
 
@@ -364,17 +433,43 @@ export default function Home() {
                 {result && (
                     <div style={{ marginTop: "2rem" }}>
                         <h3>Result:</h3>
-                        <pre
-                            style={{
-                                background: "#f5f5f5",
-                                padding: "1rem",
-                                borderRadius: "4px",
-                                overflow: "auto",
-                                maxHeight: "400px"
-                            }}
-                        >
-                            {JSON.stringify(result, null, 2)}
-                        </pre>
+                        {result.type === "streaming" || result.type === "streaming_complete" ? (
+                            <div>
+                                <div style={{ fontSize: "0.9rem", color: "#666", marginBottom: "1rem" }}>
+                                    {result.type === "streaming" ? "🔄 Streaming..." : "✅ Streaming Complete"}
+                                    <br />
+                                    Endpoint: {result.endpoint}
+                                    <br />
+                                    Timestamp: {result.timestamp}
+                                </div>
+                                <div
+                                    style={{
+                                        background: "#f5f5f5",
+                                        padding: "1rem",
+                                        borderRadius: "4px",
+                                        border: result.type === "streaming" ? "2px solid #3b82f6" : "2px solid #22c55e",
+                                        fontFamily: "monospace",
+                                        whiteSpace: "pre-wrap",
+                                        maxHeight: "400px",
+                                        overflow: "auto"
+                                    }}
+                                >
+                                    {result.content}
+                                </div>
+                            </div>
+                        ) : (
+                            <pre
+                                style={{
+                                    background: "#f5f5f5",
+                                    padding: "1rem",
+                                    borderRadius: "4px",
+                                    overflow: "auto",
+                                    maxHeight: "400px"
+                                }}
+                            >
+                                {JSON.stringify(result, null, 2)}
+                            </pre>
+                        )}
                     </div>
                 )}
 
@@ -385,7 +480,9 @@ export default function Home() {
                         <li>GET /rooms/:documentId - Get room information</li>
                         <li>GET /rooms - Get all room statistics</li>
                         <li>POST /ai/suggest - Generate AI suggestions (streams via Socket.IO)</li>
+                        <li>POST /ai/suggest/stream - Generate AI suggestions (HTTP streaming)</li>
                         <li>POST /ai/chat - Generate AI chat responses (streams via Socket.IO)</li>
+                        <li>POST /ai/chat/stream - Generate AI chat responses (HTTP streaming)</li>
                         <li>POST /diff/accept - Accept a suggestion</li>
                         <li>POST /diff/reject - Reject a suggestion</li>
                         <li>GET /health - Health check</li>
