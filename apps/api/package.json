@@ -12,9 +12,18 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fastify/websocket": "^11.2.0",
+    "@neondatabase/serverless": "^1.0.2",
+    "@types/pg": "^8.15.5",
+    "dotenv": "^17.2.3",
     "fastify": "^5.6.1",
+    "nanoid": "^5.1.6",
     "openai": "^6.7.0",
-    "pino": "^10.1.0"
+    "pg": "^8.16.3",
+    "pino": "^10.1.0",
+    "ws": "^8.18.3",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
