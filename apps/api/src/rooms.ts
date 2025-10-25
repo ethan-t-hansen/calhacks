@@ -13,7 +13,7 @@ export class RoomManager {
     /**
      * Join a user to a document room
      */
-    joinRoom(documentId: string, userId: string, websocket: WebSocket, userInfo: { name: string; color: string; avatar: string }): void {
+    joinRoom(documentId: string, userId: string, socket: any, userInfo: { name: string; color: string }): void {
         this.leaveAllRooms(userId);
 
         let room = this.rooms.get(documentId);
@@ -29,7 +29,7 @@ export class RoomManager {
 
         const roomUser: RoomUser = {
             user_id: userId,
-            websocket,
+            websocket: socket,
             user_info: userInfo,
             joined_at: new Date().toISOString(),
             last_seen: new Date().toISOString()
@@ -161,9 +161,9 @@ export class RoomManager {
         for (const [userId, roomUser] of room.users) {
             if (excludeUserId && userId === excludeUserId) continue;
 
-            if (roomUser.websocket.readyState === WebSocket.OPEN) {
+            if (roomUser.websocket.connected) {
                 try {
-                    roomUser.websocket.send(messageStr);
+                    roomUser.websocket.emit("message", message);
                     sentCount++;
 
                     // Update last seen
@@ -191,12 +191,12 @@ export class RoomManager {
         if (!room) return false;
 
         const roomUser = room.users.get(userId);
-        if (!roomUser || roomUser.websocket.readyState !== WebSocket.OPEN) {
+        if (!roomUser || !roomUser.websocket.connected) {
             return false;
         }
 
         try {
-            roomUser.websocket.send(JSON.stringify(message));
+            roomUser.websocket.emit("message", message);
             roomUser.last_seen = new Date().toISOString();
             room.last_activity = new Date().toISOString();
             return true;

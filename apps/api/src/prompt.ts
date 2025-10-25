@@ -34,3 +34,23 @@ export async function createCompletion(messages: ChatCompletionMessageParam[]) {
         throw error;
     }
 }
+
+export async function* createStreamingCompletion(messages: ChatCompletionMessageParam[]): AsyncGenerator<string, void, unknown> {
+    try {
+        const stream = await client.chat.completions.create({
+            model: "x2",
+            messages,
+            stream: true
+        });
+
+        for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content || "";
+            if (content) {
+                yield content;
+            }
+        }
+    } catch (error) {
+        console.error("Error generating streaming completion:", error);
+        throw error;
+    }
+}

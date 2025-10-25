@@ -208,7 +208,7 @@ export type AIWebSocketMessage = AIStreamStart | AIStreamChunk | AIStreamComplet
 
 export interface RoomUser {
     user_id: string;
-    websocket: WebSocket;
+    websocket: any; // Socket.IO socket
     user_info: {
         name: string;
         color: string;
@@ -264,6 +264,9 @@ export interface StorageInterface {
     saveYjsDocumentState(state: YjsDocumentState): Promise<void>;
     saveSideChatThread(thread: SideChatThread): Promise<void>;
     saveActivityLog(entry: ActivityLogEntry): Promise<void>;
+
+    // Updates
+    updateSuggestionStatus(suggestionId: string, status: "accepted" | "rejected", resolvedBy: string, resolvedAt: string): Promise<void>;
 
     // Queries
     getYjsUpdates(documentId: string, since?: Uint8Array): Promise<YjsUpdate[]>;

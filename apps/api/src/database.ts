@@ -217,6 +217,19 @@ export class NeonStorage implements StorageInterface {
             metadata: row.metadata
         }));
     }
+
+    async updateSuggestionStatus(
+        suggestionId: string,
+        status: "accepted" | "rejected",
+        resolvedBy: string,
+        resolvedAt: string
+    ): Promise<void> {
+        await this.db`
+            UPDATE suggestions 
+            SET status = ${status}, resolved_by = ${resolvedBy}, resolved_at = ${resolvedAt}
+            WHERE id = ${suggestionId}
+        `;
+    }
 }
 
 export function createStorage(): StorageInterface {
