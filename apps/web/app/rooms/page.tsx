@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import AuthWrapper from "../wrap/AuthWrapper";
 
 export default function Rooms() {
   const rooms = [
@@ -51,24 +52,26 @@ export default function Rooms() {
   const router = useRouter();
 
   return (
-    <div className="px-10 py-16 max-w-[1400px] mx-auto">
-      <h1 className="text-center text-5xl font-normal mb-16">rooms</h1>
+    <AuthWrapper>
+      <div className="px-10 py-16 max-w-[1400px] mx-auto">
+        <h1 className="text-center text-5xl font-normal mb-16">rooms</h1>
 
-      <div className="grid grid-cols-3 gap-6">
-        {rooms.map((room) => (
-          <button
-            key={room.name}
-            onClick={() => router.push(`/rooms/${room.id}`)}
-            className="border border-gray-800 p-8 rounded-none min-h-[200px] flex flex-col gap-3 cursor-pointer hover:bg-gray-50 transition"
-          >
-            <h2 className="text-2xl font-semibold m-0">{room.name}</h2>
-            <p className="text-sm m-0 opacity-80">{room.subtitle}</p>
-            <p className="text-sm m-0 mt-2 leading-relaxed">
-              {room.description}
-            </p>
-          </button>
-        ))}
+        <div className="grid grid-cols-3 gap-6">
+          {rooms.map((room) => (
+            <button
+              key={room.name}
+              onClick={() => router.push(`/rooms/${room.id}`)}
+              className="border border-gray-800 p-8 rounded-none min-h-[200px] flex flex-col gap-3 cursor-pointer hover:bg-gray-50 transition"
+            >
+              <h2 className="text-2xl font-semibold m-0">{room.name}</h2>
+              <p className="text-sm m-0 opacity-80">{room.subtitle}</p>
+              <p className="text-sm m-0 mt-2 leading-relaxed">
+                {room.description}
+              </p>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+    </AuthWrapper>
   );
 }
