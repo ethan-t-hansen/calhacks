@@ -305,9 +305,9 @@ export default function RoomDetail() {
               ← exit room
             </button>
 
-            <div className="ml-auto text-xs opacity-60">
-              {socketConnected ? "🟢 Connected" : "🔴 Disconnected"}
-            </div>
+            {!socketConnected && (
+              <div className="ml-auto text-xs opacity-60">🔴 Disconnected</div>
+            )}
           </div>
 
           {/* Chat pane: make this fill remaining height */}
@@ -351,7 +351,7 @@ export default function RoomDetail() {
                     <Squircle
                       cornerRadius={16}
                       cornerSmoothing={1}
-                      className={`px-4 py-2 inline-block max-w-[60%] ${
+                      className={`px-4 py-2 inline-block max-w-[85%] lg:max-w-[75%] ${
                         userId === msg.username
                           ? "bg-blue-500 text-white ml-auto"
                           : "bg-stone-300 text-black"
@@ -367,24 +367,26 @@ export default function RoomDetail() {
             </div>
 
             {/* Input */}
-            <div className="absolute bottom-8 left-8 w-[calc(100%-4rem)] flex flex-row gap-2 items-center shrink-0">
-              <Input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend(true)}
-                placeholder="Type your message here"
-                className="flex-1 h-12 bg-white/90 backdrop-blur border border-gray-300 rounded-2xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button onClick={() => handleSend()}>
-                <Squircle
-                  cornerRadius={16}
-                  cornerSmoothing={1}
-                  className="w-12 h-12 rounded-md bg-blue-500 flex items-center justify-center hover:bg-blue-600 transition text-white"
-                >
-                  <ArrowUp size={16} />
-                </Squircle>
-              </button>
+            <div className="absolute bottom-0 w-full shrink-0 bg-linear-to-t from-white via-white to-white/0 z-0">
+              <div className="flex flex-row gap-2 items-center mx-8 mb-8">
+                <Input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend(true)}
+                  placeholder="Type your message here"
+                  className="flex-1 h-12 bg-white/90 backdrop-blur border border-gray-300 rounded-2xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button onClick={() => handleSend()}>
+                  <Squircle
+                    cornerRadius={16}
+                    cornerSmoothing={1}
+                    className="w-12 h-12 rounded-md bg-blue-500 flex items-center justify-center hover:bg-blue-600 transition text-white"
+                  >
+                    <ArrowUp size={16} />
+                  </Squircle>
+                </button>
+              </div>
             </div>
           </div>
         </div>
