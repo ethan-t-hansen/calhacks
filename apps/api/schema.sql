@@ -49,34 +49,34 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     INDEX idx_chat_messages_timestamp (timestamp)
 );
 
--- Side Chat Threads
-CREATE TABLE IF NOT EXISTS side_chat_threads (
-    id VARCHAR(255) PRIMARY KEY,
-    document_id VARCHAR(255) NOT NULL,
-    created_by VARCHAR(255) NOT NULL,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    title VARCHAR(500) NOT NULL,
-    anchor_position INTEGER NOT NULL,
-    anchor_text TEXT NOT NULL,
-    resolved BOOLEAN NOT NULL DEFAULT FALSE,
-    INDEX idx_side_chat_threads_document_id (document_id),
-    INDEX idx_side_chat_threads_resolved (resolved),
-    INDEX idx_side_chat_threads_timestamp (timestamp)
-);
+-- -- Side Chat Threads
+-- CREATE TABLE IF NOT EXISTS side_chat_threads (
+--     id VARCHAR(255) PRIMARY KEY,
+--     document_id VARCHAR(255) NOT NULL,
+--     created_by VARCHAR(255) NOT NULL,
+--     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--     title VARCHAR(500) NOT NULL,
+--     anchor_position INTEGER NOT NULL,
+--     anchor_text TEXT NOT NULL,
+--     resolved BOOLEAN NOT NULL DEFAULT FALSE,
+--     INDEX idx_side_chat_threads_document_id (document_id),
+--     INDEX idx_side_chat_threads_resolved (resolved),
+--     INDEX idx_side_chat_threads_timestamp (timestamp)
+-- );
 
--- Side Chat Messages
-CREATE TABLE IF NOT EXISTS side_chat_messages (
-    id VARCHAR(255) PRIMARY KEY,
-    thread_id VARCHAR(255) NOT NULL,
-    document_id VARCHAR(255) NOT NULL,
-    user_id VARCHAR(255) NOT NULL,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    message TEXT NOT NULL,
-    INDEX idx_side_chat_messages_thread_id (thread_id),
-    INDEX idx_side_chat_messages_document_id (document_id),
-    INDEX idx_side_chat_messages_timestamp (timestamp),
-    FOREIGN KEY (thread_id) REFERENCES side_chat_threads(id) ON DELETE CASCADE
-);
+-- -- Side Chat Messages
+-- CREATE TABLE IF NOT EXISTS side_chat_messages (
+--     id VARCHAR(255) PRIMARY KEY,
+--     thread_id VARCHAR(255) NOT NULL,
+--     document_id VARCHAR(255) NOT NULL,
+--     user_id VARCHAR(255) NOT NULL,
+--     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--     message TEXT NOT NULL,
+--     INDEX idx_side_chat_messages_thread_id (thread_id),
+--     INDEX idx_side_chat_messages_document_id (document_id),
+--     INDEX idx_side_chat_messages_timestamp (timestamp),
+--     FOREIGN KEY (thread_id) REFERENCES side_chat_threads(id) ON DELETE CASCADE
+-- );
 
 -- Activity Logs
 CREATE TABLE IF NOT EXISTS activity_logs (
