@@ -55,21 +55,22 @@ export async function handleYjsUpdate(socket: Socket, data: { documentId: string
     }
 }
 
-export function handleYjsSyncRequest(socket: Socket, data: { documentId: string; userId: string; stateVector: Uint8Array }) {
+export function handleYjsSyncRequest(socket: Socket, data: { documentId: string; userId: string; stateVector: number[] }) {
     const { documentId, userId, stateVector } = data;
 
     try {
-        const updates = yjsModel.getUpdatesSince(documentId, stateVector);
+        const stateVectorUint8 = stateVector ? new Uint8Array(stateVector) : new Uint8Array(0);
+        const updates = yjsModel.getUpdatesSince(documentId, stateVectorUint8);
 
         socket.emit("yjs-sync-response", {
             documentId,
-            update: updates
+            update: Array.from(updates)
         });
     } catch (error) {
         console.error("Error handling Yjs sync request:", error);
         socket.emit("yjs-sync-response", {
             documentId,
-            update: new Uint8Array(0)
+            update: []
         });
     }
 }

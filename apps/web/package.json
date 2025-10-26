@@ -13,9 +13,16 @@
   "dependencies": {
     "@repo/ui": "workspace:*",
     "next": "^16.0.0",
+    "quill": "^2.0.3",
+    "quill-cursors": "^4.0.4",
     "react": "^19.2.0",
     "react-dom": "^19.1.0",
-    "socket.io-client": "^4.8.1"
+    "react-quill": "^2.0.0",
+    "socket.io-client": "^4.8.1",
+    "y-protocols": "^1.0.6",
+    "y-quill": "^1.0.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
