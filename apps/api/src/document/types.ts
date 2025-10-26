@@ -14,4 +14,5 @@ export interface DocumentState {
     user_to_message: { [key: string]: number[] };
     active_users: number;
     is_dirty: boolean;
+    connected_users?: Map<string, {user_id: string}>;
 }

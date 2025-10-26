@@ -42,7 +42,7 @@ export default function RoomDetail() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
+  const [connectedUsers, setConnectedUsers] = useState<Map<string, { user_id: string}>>(new Map());
   const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(
     new Set()
   );
@@ -96,7 +96,15 @@ export default function RoomDetail() {
         return;
       }
 
-      if (msg.type === "user_join" && msg.data) {
+      if (msg.type === "room_state" && msg.data?.connected_users) {
+        setConnectedUsers(
+          msg.data.connected_users.map((user: any) => ({
+            userId: user.user_id,
+            name: user.user_id,
+            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+          }))
+        );
+      } else if (msg.type === "user_join" && msg.data) {
         setConnectedUsers((prev) => {
           const exists = prev.some((u) => u.userId === msg.data.user_id);
           if (!exists) {
@@ -146,6 +154,10 @@ export default function RoomDetail() {
             ];
           }
         });
+      } else if (msg.type === "user_left" && msg.data) {
+        setConnectedUsers((prev) =>
+          prev.filter((u) => u.userId !== msg.data.user_id)
+        );
       }
 
       setProcessedMessageIds((prev) => new Set(prev).add(msgId));
@@ -302,12 +314,7 @@ export default function RoomDetail() {
           <div className="flex gap-2 mb-6">
             {connectedUsers.length > 0 ? (
               connectedUsers.map((user) => (
-                <div
-                  key={user.userId}
-                  title={user.name}
-                  style={{ background: user.color }}
-                  className="w-8 h-8 rounded-full cursor-pointer"
-                />
+                <div key={user.userId}>{user.userId}</div>
               ))
             ) : (
               <div className="text-sm opacity-40">No users connected</div>

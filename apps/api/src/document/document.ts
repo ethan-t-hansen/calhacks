@@ -19,6 +19,7 @@ export function createDocumentState(params: {
         message_log: params.message_log || [],
         user_to_message: params.user_to_message || {},
         active_users: 0,
+        connected_users: new Map(),
         is_dirty: false
     };
 }

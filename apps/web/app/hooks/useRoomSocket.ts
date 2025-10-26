@@ -149,6 +149,13 @@ export function useRoomSocket({
       ]);
     });
 
+    socket.on("room_state", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "room_state", data, timestamp: new Date().toISOString() },
+      ]);
+    });
+
     socket.on("chat", (data: any) => {
       const { doc_id, user_id, message, position } = data;
       const newMessage: SocketMessage = {
