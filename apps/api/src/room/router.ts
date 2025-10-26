@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Socket } from "socket.io";
-import { startDocumentPersistence, handleJoin, handleLeave, handleDisconnect, handleAwareness, handleUpdate } from "./controller";
+import { startDocumentPersistence, handleJoin, handleLeave, handleAwareness, handleUpdate } from "./controller";
 
 export function createRoomRouter(io: any) {
     const router = Router();
@@ -20,7 +20,6 @@ export function createRoomRouter(io: any) {
 
         socket.on("join", (data: string) => handleJoin(socket, data));
         socket.on("leave", (data: string) => handleLeave(socket, data));
-        socket.on("disconnect", (data: string) => handleDisconnect(socket, data));
         socket.on("awareness", (data: string) => handleAwareness(socket, data));
         socket.on("update", (data: string) => handleUpdate(socket, data));
     });

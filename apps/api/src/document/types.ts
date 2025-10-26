@@ -1,3 +1,5 @@
+import { ChatMessage } from "../completion/types";
+
 interface YjsDocumentState {
     type: "yjs_state";
     document_id: string;
@@ -9,5 +11,7 @@ interface YjsDocumentState {
 export interface DocumentState {
     yjs_state: YjsDocumentState;
     message_log: { role: string; message: string }[];
-    user_to_message: { [key: string]: { role: string; message: string }[] };
+    user_to_message: { [key: string]: ChatMessage[] };
+    active_users: number;
+    is_dirty: boolean;
 }

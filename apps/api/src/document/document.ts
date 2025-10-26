@@ -1,3 +1,4 @@
+import { ChatMessage } from "../completion/types";
 import { DocumentState } from "./types";
 
 export function createDocumentState(params: {
@@ -5,7 +6,7 @@ export function createDocumentState(params: {
     state_vector?: Uint8Array;
     update?: Uint8Array;
     message_log?: { role: string; message: string }[];
-    user_to_message?: { [key: string]: { role: string; message: string }[] };
+    user_to_message?: { [key: string]: ChatMessage[] };
 }): DocumentState {
     return {
         yjs_state: {
