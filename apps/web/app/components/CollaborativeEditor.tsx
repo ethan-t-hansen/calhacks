@@ -19,8 +19,6 @@ interface CollaborativeEditorProps {
 export default function CollaborativeEditor({
   documentId,
   userId,
-  userName,
-  userColor,
   socket,
   socketConnected,
 }: CollaborativeEditorProps) {
@@ -68,8 +66,7 @@ export default function CollaborativeEditor({
 
       const awareness = new Awareness(ydoc);
       awareness.setLocalStateField("user", {
-        name: userName,
-        color: userColor,
+        id: userId,
       });
 
       const binding = new QuillBindingConstructor(ytext, quill, awareness);
@@ -128,7 +125,7 @@ export default function CollaborativeEditor({
         quillRef.current.disable();
       }
     };
-  }, [documentId, userId, userName, userColor, socket]);
+  }, [documentId, userId, socket]);
 
   useEffect(() => {
     setIsConnected(socketConnected);

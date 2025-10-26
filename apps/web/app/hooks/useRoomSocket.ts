@@ -4,8 +4,6 @@ import { io, Socket } from "socket.io-client";
 interface UseRoomSocketProps {
   documentId: string;
   userId: string;
-  userName: string;
-  userColor: string;
   autoConnect?: boolean;
 }
 
@@ -19,8 +17,6 @@ interface SocketMessage {
 export function useRoomSocket({
   documentId,
   userId,
-  userName,
-  userColor,
   autoConnect = false,
 }: UseRoomSocketProps): {
   socketConnected: boolean;
@@ -44,7 +40,7 @@ export function useRoomSocket({
   const socketRef = useRef<Socket | null>(null);
 
   const connectSocket = () => {
-    if (!userId || !userName || !userColor) {
+    if (!userId) {
       console.error("Missing required user information");
       return;
     }
@@ -86,35 +82,34 @@ export function useRoomSocket({
       ]);
     });
 
-    // Match controller roots
-    socket.on("user-joined", (data: any) => {
+    socket.on("user_join", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
-        { type: "user-joined", data, timestamp: new Date().toISOString() },
+        { type: "user_join", data, timestamp: new Date().toISOString() },
       ]);
     });
-
-    socket.on("user-left", (data: any) => {
+    
+    socket.on("user_left", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
-        { type: "user-left", data, timestamp: new Date().toISOString() },
+        { type: "user_left", data, timestamp: new Date().toISOString() },
       ]);
     });
-
-    socket.on("awareness", (data: any) => {
+    
+    socket.on("aware", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
-        { type: "awareness", data, timestamp: new Date().toISOString() },
+        { type: "aware", data, timestamp: new Date().toISOString() },
       ]);
     });
-
-    socket.on("update", (data: any) => {
+    
+    socket.on("yjs", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
-        { type: "update", data, timestamp: new Date().toISOString() },
+        { type: "yjs", data, timestamp: new Date().toISOString() },
       ]);
     });
-
+    
     socket.on("chat", (data: any) => {
       const { doc_id, user_id, message, position } = data;
       const newMessage: SocketMessage = {
@@ -129,6 +124,13 @@ export function useRoomSocket({
         timestamp: new Date().toISOString(),
       };
       setSocketMessages((prev) => [...prev, newMessage]);
+    });
+    
+    socket.on("chunk", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "chunk", data, timestamp: new Date().toISOString() },
+      ]);
     });
   };
 

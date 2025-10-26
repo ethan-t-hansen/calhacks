@@ -23,7 +23,7 @@ interface Message {
 }
 
 export default function RoomDetail() {
-  const { userId, userName, userColor } = useUserIdentity();
+  const { userId } = useUserIdentity();
   const [isThinking, setIsThinking] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -37,14 +37,11 @@ export default function RoomDetail() {
     useRoomSocket({
       documentId: docId,
       userId,
-      userName,
-      userColor,
       autoConnect: true,
     });
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [activeSubroom, setActiveSubroom] = useState("A");
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(
     new Set()
@@ -55,54 +52,68 @@ export default function RoomDetail() {
   }, [messages]);
 
   useEffect(() => {
+    console.log(socketMessages);
+  }, [socketMessages])
+
+  useEffect(() => {
     socketMessages.forEach((msg) => {
       const msgId = `${msg.type}-${msg.timestamp}`;
-
+  
       if (processedMessageIds.has(msgId)) {
         return;
       }
-
-      if (msg.type === "user-joined" && msg.data) {
+  
+      if (msg.type === "user_join" && msg.data) {
         setConnectedUsers((prev) => {
-          const exists = prev.some((u) => u.userId === msg.data.userId);
+          const exists = prev.some((u) => u.userId === msg.data.user_id);
           if (!exists) {
             return [
               ...prev,
               {
-                userId: msg.data.userId,
-                name: msg.data.userInfo?.name || msg.data.name,
-                color: msg.data.userInfo?.color || msg.data.color,
+                userId: msg.data.user_id,
+                name: msg.data.user_id,
+                color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
               },
             ];
           }
           return prev;
         });
-      } else if (msg.type === "user-left" && msg.data) {
+      } else if (msg.type === "user_left" && msg.data) {
         setConnectedUsers((prev) =>
-          prev.filter((u) => u.userId !== msg.data.userId)
+          prev.filter((u) => u.userId !== msg.data.user_id)
         );
-      } else if (msg.type === "ai-message" && msg.data?.content) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: msg.data.content,
-            username: "chat.ai",
-          },
-        ]);
-      } else if (msg.type === "message" && msg.data?.content) {
-        if (msg.data.userId !== userId) {
+      } else if (msg.type === "chat" && msg.data) {
+        if (msg.data.username !== userId) {
           setMessages((prev) => [
             ...prev,
             {
-              role: "assistant",
+              role: msg.data.role,
               content: msg.data.content,
-              username: msg.data.userName || "Unknown",
+              username: msg.data.username,
             },
           ]);
         }
+      } else if (msg.type === "chunk" && msg.data) {
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg && lastMsg.role === "ai" && lastMsg.username === "ai") {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMsg, content: lastMsg.content + msg.data.data },
+            ];
+          } else {
+            return [
+              ...prev,
+              {
+                role: "ai",
+                content: msg.data.data,
+                username: "ai",
+              },
+            ];
+          }
+        });
       }
-
+  
       setProcessedMessageIds((prev) => new Set(prev).add(msgId));
     });
   }, [socketMessages, userId, processedMessageIds]);
@@ -202,10 +213,10 @@ export default function RoomDetail() {
                     key={i}
                     className={cn(
                       "flex flex-col w-full border",
-                      msg.username !== userName ? "items-start" : "items-end"
+                      msg.username !== userId ? "items-start" : "items-end"
                     )}
                   >
-                    {msg.username && userName !== msg.username && (
+                    {msg.username && userId !== msg.username && (
                       <div className="text-xs mb-1 opacity-60">
                         {msg.username}
                       </div>
@@ -281,8 +292,6 @@ export default function RoomDetail() {
             <CollaborativeEditor
               documentId={docId}
               userId={userId}
-              userName={userName}
-              userColor={userColor}
               socket={socket}
               socketConnected={socketConnected}
             />

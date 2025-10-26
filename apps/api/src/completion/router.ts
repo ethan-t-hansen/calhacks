@@ -14,7 +14,7 @@ export function createCompletionRouter(io: any) {
     }); 
 
     io.on("connection", (socket: Socket) => {
-        console.log("client connected: ", socket.id);
+        console.log("chat client connected: ", socket.id);
 
         socket.on("chat", (data: any) => handleChatStream(io, data));
         // socket.on("suggest", (data: string) => handleSuggestStream(io, JSON.parse(data)));
