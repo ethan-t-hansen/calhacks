@@ -19,7 +19,7 @@ export default function SuggestionDiff({ original, suggested, onAccept, onReject
     return (
         <div
             style={{
-                position: "absolute",
+                position: "fixed",
                 top: position.top,
                 left: position.left,
                 zIndex: 1000,

@@ -118,22 +118,31 @@ export default function CollaborativeEditor({ documentId, userId, socket, socket
                 stateVector: Array.from(stateVector)
             });
 
-            quill.on("selection-change", (range) => {
+            quill.on("selection-change", (range, oldRange, source) => {
+                console.log("Selection change event:", { range, oldRange, source });
+
                 if (range && range.length > 0) {
                     const text = quill.getText(range.index, range.length);
+                    console.log("Selection detected:", { range, text, length: text.length });
                     setSelectedText(text);
                     setSelectionRange({ index: range.index, length: range.length });
 
                     const bounds = quill.getBounds(range.index, range.length);
                     const editorRect = editorRef.current?.getBoundingClientRect();
                     if (editorRect && bounds) {
-                        setToolbarPosition({
-                            top: editorRect.top + bounds.bottom + window.scrollY + 5,
-                            left: editorRect.left + bounds.left + window.scrollX
-                        });
+                        const position = {
+                            top: editorRect.top + bounds.bottom + 5,
+                            left: editorRect.left + bounds.left
+                        };
+                        console.log("Setting toolbar position:", position, "editorRect:", editorRect, "bounds:", bounds);
+                        setToolbarPosition(position);
                     }
                     setShowToolbar(true);
-                } else {
+                    console.log("Toolbar should be visible now");
+                } else if (range === null) {
+                    console.log("Editor lost focus, keeping toolbar open");
+                } else if (range.length === 0) {
+                    console.log("Selection cleared by user");
                     setShowToolbar(false);
                     setSelectionRange(null);
                     setSelectedText("");
@@ -235,8 +244,30 @@ export default function CollaborativeEditor({ documentId, userId, socket, socket
         setCurrentSuggestion(null);
     };
 
+    const handleCloseToolbar = () => {
+        setShowToolbar(false);
+        setSelectionRange(null);
+        setSelectedText("");
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                if (showToolbar) {
+                    handleCloseToolbar();
+                }
+                if (currentSuggestion) {
+                    handleRejectSuggestion();
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [showToolbar, currentSuggestion]);
+
     return (
-        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
             <div
                 style={{
                     fontSize: "12px",
@@ -249,6 +280,10 @@ export default function CollaborativeEditor({ documentId, userId, socket, socket
             >
                 <span>{isConnected ? "🟢" : "🔴"}</span>
                 <span>{isConnected ? "Synced" : isLoading ? "Loading..." : "Connecting..."}</span>
+                <span style={{ marginLeft: "auto", fontSize: "10px", opacity: 0.5 }}>
+                    Selection: {selectionRange ? `${selectionRange.index}:${selectionRange.length}` : "none"} | Toolbar:{" "}
+                    {showToolbar ? "YES" : "no"} | Suggestion: {currentSuggestion ? "YES" : "no"}
+                </span>
             </div>
             <div
                 ref={editorRef}
@@ -256,13 +291,32 @@ export default function CollaborativeEditor({ documentId, userId, socket, socket
                     flex: 1,
                     background: "var(--background)",
                     fontSize: "14px",
-                    lineHeight: "1.8"
+                    lineHeight: "1.8",
+                    position: "relative"
                 }}
             />
+            {showToolbar && !currentSuggestion && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: "10px",
+                        right: "10px",
+                        padding: "8px",
+                        background: "yellow",
+                        border: "2px solid red",
+                        zIndex: 9999
+                    }}
+                >
+                    DEBUG: Toolbar should be visible!
+                    <br />
+                    Position: {JSON.stringify(toolbarPosition)}
+                </div>
+            )}
             <SuggestionToolbar
                 visible={showToolbar && !currentSuggestion}
                 position={toolbarPosition}
                 onRequestSuggestion={handleRequestSuggestion}
+                onClose={handleCloseToolbar}
                 disabled={isStreaming}
             />
             {currentSuggestion && (
