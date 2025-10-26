@@ -59,9 +59,11 @@ export async function handleChatStream(
 
     if (!doc_id || !user_id || !message || (position && (!position.range || !position.range.anchor || !position.range.anchor))) {
         socket.emit("error", "invalid syntax encountered");
+        return false;
     }
 
     let document = room_state.documents[doc_id];
+    socket.to(doc_id).emit("chat", data);
 
     if (!document) {
         const persistedDoc = await neonDAO.one((sql) => sql`SELECT * FROM yjs_document_states WHERE document_id=${doc_id}`);
@@ -115,8 +117,6 @@ export async function handleChatStream(
         console.log("we hit an error here!");
         console.error(error);
     }
-
-    socket.to(doc_id).emit("chat", data);
 
     if (request_completion) {
         const ydoc = new Y.Doc();
