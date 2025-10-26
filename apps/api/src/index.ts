@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
+import { createRoomRouter } from "./room/router";
 
 dotenv.config();
 
@@ -17,22 +18,7 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
-
-// try {
-//     const connectionString = process.env.DATABASE_URL;
-//     if (!connectionString) {
-//         throw new Error("DATABASE_URL environment variable is required");
-//     }
-//     database.initializeDatabase(connectionString);
-//     console.log("Database connection initialized successfully");
-// } catch (error) {
-//     console.error("Failed to initialize database connection:", error);
-//     process.exit(1);
-// }
-
-// yjsModel.startPeriodicSnapshots();
-
-// setupSocketRoutes(io);
+app.use("/ws", createRoomRouter(io));
 
 app.get("/health", (req, res) => {
     res.json({ status: "ok" });
