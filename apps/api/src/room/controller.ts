@@ -80,7 +80,27 @@ export function handleUpdate(socket: Socket, data: any) {
         room_state.documents[doc_id] = createDocumentState({ document_id: doc_id });
     }
 
-    room_state.documents[doc_id].yjs_state.update = update;
+    const updateArray = Array.isArray(update) ? new Uint8Array(update) : update;
+    room_state.documents[doc_id].yjs_state.update = updateArray;
     room_state.documents[doc_id].is_dirty = true;
-    socket.to(doc_id).emit("yjs", data);
+    socket.to(doc_id).emit("yjs", { update });
+}
+
+export function handleSyncRequest(socket: Socket, data: any) {
+    const { documentId, stateVector } = data;
+
+    if (!room_state.documents[documentId]) {
+        socket.emit("yjs-sync-response", { documentId, update: [] });
+        return;
+    }
+
+    const document = room_state.documents[documentId];
+    if (document.yjs_state.update && document.yjs_state.update.length > 0) {
+        socket.emit("yjs-sync-response", {
+            documentId,
+            update: document.yjs_state.update
+        });
+    } else {
+        socket.emit("yjs-sync-response", { documentId, update: [] });
+    }
 }

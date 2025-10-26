@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { Socket } from "socket.io";
-import { startDocumentPersistence, handleJoin, handleLeave, handleAwareness, handleUpdate } from "./controller";
+import { startDocumentPersistence, handleJoin, handleLeave, handleAwareness, handleUpdate, handleSyncRequest } from "./controller";
 import { handleChatStream } from "../completion/controller";
 import { neonDAO } from "../database/neon";
 import { createDocumentState } from "../document/document";
@@ -22,6 +22,7 @@ export function createRoomRouter(io: any) {
         socket.on("leave", (data) => handleLeave(socket, data));
         socket.on("awareness", (data) => handleAwareness(socket, data));
         socket.on("update", (data) => handleUpdate(socket, data));
+        socket.on("yjs-sync-request", (data) => handleSyncRequest(socket, data));
     });
 
     router.get("/rehydrate/:doc_id/:user_id", async (req, res) => {
