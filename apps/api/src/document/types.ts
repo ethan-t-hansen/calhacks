@@ -1,6 +1,6 @@
 import { ChatMessage } from "../completion/types";
 
-interface YjsDocumentState {
+export interface YjsDocumentState {
     type: "yjs_state";
     document_id: string;
     state_vector: Uint8Array;

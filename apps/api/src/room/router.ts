@@ -22,7 +22,6 @@ export function createRoomRouter(io: any) {
         socket.on("leave", (data) => handleLeave(socket, data));
         socket.on("awareness", (data) => handleAwareness(socket, data));
         socket.on("update", (data) => handleUpdate(socket, data));
-        socket.on("chat", (data) => handleChatStream(io, data));
     });
 
     router.get("/rehydrate/:doc_id/:user_id", async (req, res) => {

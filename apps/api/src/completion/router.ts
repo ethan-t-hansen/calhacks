@@ -11,7 +11,9 @@ export function createCompletionRouter(io: any) {
 
     router.get("/ws", (req, res) => {
         res.json({ message: "connect to websocket using Socket.IO at the same host" });
-    }); 
+    });
+
+    router.post("/suggest", handleSuggestStream);
 
     io.on("connection", (socket: Socket) => {
         console.log("client connected: ", socket.id);

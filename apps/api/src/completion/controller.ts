@@ -7,16 +7,13 @@ import { Socket } from "socket.io";
 import { createDocumentState } from "../document/document";
 import { ChatMessage } from "./types";
 import { request } from "http";
+import { DocumentState, YjsDocumentState } from "../document/types";
 
 interface SuggestRequest {
-    documentId: string;
-    userId: string;
-    prompt?: string;
-    context?: {
-        selectedText?: string;
-        range?: { anchor: number; head: number };
-        cursorPosition?: number;
-    };
+    doc_id: string;
+    user_id: string;
+    prompt: string;
+    context: string;
 }
 
 export async function updateSuggestionStatus(req: Request, res: Response) {
@@ -175,9 +172,9 @@ export async function handleChatStream(
 }
 
 export async function handleSuggestStream(req: Request, res: Response) {
-    const { documentId, userId, prompt, context } = req.body as SuggestRequest;
+    const { doc_id, user_id, prompt, context } = req.body as SuggestRequest;
 
-    if (!documentId || !userId) {
+    if (!doc_id || !user_id) {
         return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -185,10 +182,8 @@ export async function handleSuggestStream(req: Request, res: Response) {
     res.setHeader("Transfer-Encoding", "chunked");
 
     try {
-        const document = room_state.documents[documentId];
+        const document = room_state.documents[doc_id];
         let documentContent = "";
-        let targetText = "";
-
         if (document) {
             const ydoc = new Y.Doc();
 
@@ -198,39 +193,23 @@ export async function handleSuggestStream(req: Request, res: Response) {
 
             const ytext = ydoc.getText("content");
             documentContent = ytext.toString();
-
-            if (context?.range) {
-                const start = Math.min(context.range.anchor, context.range.head);
-                const end = Math.max(context.range.anchor, context.range.head);
-                targetText = documentContent.slice(start, end);
-            } else if (context?.selectedText) {
-                targetText = context.selectedText;
-            }
         } else {
-            const persistedDoc = await neonDAO.one((sql) => sql`SELECT * FROM yjs_document_states WHERE document_id=${documentId} LIMIT 5`);
+            const persistedDoc = (await neonDAO.one(
+                (sql) => sql`SELECT * FROM yjs_document_states WHERE document_id=${doc_id} LIMIT 5`
+            )) as YjsDocumentState;
 
             if (persistedDoc) {
                 const ydoc = new Y.Doc();
-                Y.applyUpdate(ydoc, new Uint8Array(persistedDoc.update_data));
+                if (persistedDoc.update && persistedDoc.update.length > 0) {
+                    Y.applyUpdate(ydoc, new Uint8Array(persistedDoc.update));
+                }
                 const ytext = ydoc.getText("content");
                 documentContent = ytext.toString();
-
-                if (context?.range) {
-                    const start = Math.min(context.range.anchor, context.range.head);
-                    const end = Math.max(context.range.anchor, context.range.head);
-                    targetText = documentContent.slice(start, end);
-                }
             }
         }
 
-        const systemPrompt = buildSystemPrompt(documentContent, targetText, prompt);
-        const messages = [
-            { role: "system" as const, content: systemPrompt },
-            {
-                role: "user" as const,
-                content: prompt || "Suggest improvements to the selected text or document"
-            }
-        ];
+        const systemPrompt = buildSystemPrompt(documentContent, context, prompt);
+        const messages = [{ role: "user" as const, content: systemPrompt }];
 
         let fullSuggestion = "";
 
@@ -238,26 +217,6 @@ export async function handleSuggestStream(req: Request, res: Response) {
             fullSuggestion += chunk;
             res.write(chunk);
         }
-
-        const suggestionId = `sug_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await neonDAO.query(
-            (sql) => sql`
-            INSERT INTO suggestions (
-                id, document_id, user_id, suggestion, 
-                target_range_anchor, target_range_head, 
-                target_text, status
-            ) VALUES (
-                ${suggestionId},
-                ${documentId},
-                ${userId},
-                ${fullSuggestion},
-                ${context?.range?.anchor || 0},
-                ${context?.range?.head || 0},
-                ${targetText},
-                'pending'
-            )
-        `
-        );
 
         res.end();
     } catch (error) {
@@ -271,21 +230,23 @@ export async function handleSuggestStream(req: Request, res: Response) {
 }
 
 function buildSystemPrompt(documentContent: string, targetText: string, userPrompt?: string): string {
-    let prompt = "You are an AI writing assistant helping to improve documents.\n\n";
+    let prompt =
+        "You are an expert AI writing coach. Your task is to enhance and clarify the user's document and selection with clear, concise, and impactful language.\n\n";
 
     if (documentContent) {
-        prompt += `Full document content:\n${documentContent}\n\n`;
+        prompt += `Here is the current document:\n${documentContent}\n\n`;
     }
 
     if (targetText) {
-        prompt += `Selected text to focus on:\n${targetText}\n\n`;
+        prompt += `Focus your edit on this selection:\n${targetText}\n\n`;
     }
 
     if (userPrompt) {
-        prompt += `User request: ${userPrompt}\n\n`;
+        prompt += `Special instructions or requests from the user:\n${userPrompt}\n\n`;
     }
 
-    prompt += "Provide clear, actionable suggestions to improve the writing.";
+    prompt +=
+        "Respond only with the improved replacement text or edits for the selection above. Do not include commentary or explanations.";
 
     return prompt;
 }
