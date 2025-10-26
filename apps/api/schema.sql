@@ -1,6 +1,7 @@
 -- Yjs Document States (periodic persistence)
 CREATE TABLE IF NOT EXISTS yjs_document_states (
     document_id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL DEFAULT 'Untitled Room',
     state_vector BYTEA NOT NULL,
     update_data BYTEA NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()

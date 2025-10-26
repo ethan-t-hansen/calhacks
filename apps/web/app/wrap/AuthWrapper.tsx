@@ -6,14 +6,12 @@ export default function AuthWrapper({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { userId, userName } = useUserIdentity();
-
   return (
-    <div>
+    <>
       <div className="absolute bottom-4 right-4">
         <SigninDialog />
       </div>
       {children}
-    </div>
+    </>
   );
 }

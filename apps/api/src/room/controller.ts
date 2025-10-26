@@ -2,6 +2,7 @@ import { Socket } from "socket.io";
 import { Room } from "./types";
 import { createDocumentState } from "../document/document";
 import { neonDAO } from "../database/neon";
+import * as Y from "yjs";
 
 export const room_state: Room = { documents: {} };
 
@@ -20,7 +21,7 @@ export function startDocumentPersistence() {
                 }
             }
         }
-    }, 20000);
+    }, 10000);
 }
 
 export async function handleJoin(socket: Socket, data: any) {
@@ -101,8 +102,23 @@ export function handleUpdate(socket: Socket, data: any) {
     }
 
     const updateArray = Array.isArray(update) ? new Uint8Array(update) : update;
-    room_state.documents[doc_id].yjs_state.update = updateArray;
+
+    // Apply the update to the Y.Doc to merge changes
+    const ydoc = new Y.Doc();
+
+    // First apply existing state if any
+    if (room_state.documents[doc_id].yjs_state.update && room_state.documents[doc_id].yjs_state.update.length > 0) {
+        Y.applyUpdate(ydoc, room_state.documents[doc_id].yjs_state.update);
+    }
+
+    // Then apply the new update
+    Y.applyUpdate(ydoc, updateArray);
+
+    // Encode the merged state
+    const mergedUpdate = Y.encodeStateAsUpdate(ydoc);
+    room_state.documents[doc_id].yjs_state.update = mergedUpdate;
     room_state.documents[doc_id].is_dirty = true;
+
     socket.to(doc_id).emit("yjs", { update });
 }
 

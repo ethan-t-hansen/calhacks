@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRoomSocket } from "../../hooks/useRoomSocket";
 import { useParams, useRouter } from "next/navigation";
 import CollaborativeEditor from "../../components/CollaborativeEditor";
@@ -8,7 +8,27 @@ import { useUserIdentity } from "@/app/hooks/useUserIdentity";
 import AuthWrapper from "@/app/wrap/AuthWrapper";
 import { cn } from "@/lib/utils";
 import { Squircle } from "@squircle-js/react";
-import { ArrowUp } from "lucide-react";
+import {
+  ArrowUp,
+  User,
+  Rocket,
+  Star,
+  Zap,
+  Coffee,
+  Heart,
+  Crown,
+  Sparkles,
+  Flame,
+  Bot,
+  type LucideIcon,
+} from "lucide-react";
+import { useRoomById, useUpdateRoomName } from "@/queries/room";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ConnectedUser {
   userId: string;
@@ -22,6 +42,49 @@ interface Message {
   username: string;
 }
 
+// Utility functions for consistent user colors and icons
+const COLORS = [
+  "#3b82f6", // blue
+  "#10b981", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#14b8a6", // teal
+  "#f97316", // orange
+];
+
+const ICONS: LucideIcon[] = [
+  User,
+  Rocket,
+  Star,
+  Zap,
+  Coffee,
+  Heart,
+  Crown,
+  Sparkles,
+  Flame,
+  Bot,
+];
+
+const hashString = (str: string): number => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+};
+
+const getUserColor = (userId: string): string => {
+  return COLORS[hashString(userId) % COLORS.length];
+};
+
+const getUserIcon = (userId: string): LucideIcon => {
+  return ICONS[hashString(userId + "icon") % ICONS.length];
+};
+
 export default function RoomDetail() {
   const { userId } = useUserIdentity();
   const [isThinking, setIsThinking] = useState(false);
@@ -33,6 +96,9 @@ export default function RoomDetail() {
   const params = useParams();
   const docId = typeof params.id === "string" ? params.id : "";
 
+  const { data, isLoading } = useRoomById(docId);
+  const updateRoomNameMutation = useUpdateRoomName(docId);
+
   const { socket, socketConnected, socketMessages, sendChatMessage } =
     useRoomSocket({
       documentId: docId,
@@ -42,10 +108,21 @@ export default function RoomDetail() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [connectedUsers, setConnectedUsers] = useState<Map<string, { user_id: string}>>(new Map());
+  const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([]);
   const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(
     new Set()
   );
+  const [roomNameInput, setRoomNameInput] = useState<string>("");
+  const [initialYjsState, setInitialYjsState] = useState<{
+    update: number[];
+  } | null>(null);
+
+  // Sync room name input with fetched data
+  useEffect(() => {
+    if (data?.room.name) {
+      setRoomNameInput(data.room.name);
+    }
+  }, [data?.room.name]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,6 +147,10 @@ export default function RoomDetail() {
         }
 
         const data = await response.json();
+
+        if (data.yjs_state) {
+          setInitialYjsState(data.yjs_state);
+        }
 
         if (data.message_log && Array.isArray(data.message_log)) {
           const rehydratedMessages = data.message_log.map((msg: any) => ({
@@ -101,7 +182,7 @@ export default function RoomDetail() {
           msg.data.connected_users.map((user: any) => ({
             userId: user.user_id,
             name: user.user_id,
-            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+            color: getUserColor(user.user_id),
           }))
         );
       } else if (msg.type === "user_join" && msg.data) {
@@ -113,7 +194,7 @@ export default function RoomDetail() {
               {
                 userId: msg.data.user_id,
                 name: msg.data.user_id,
-                color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+                color: getUserColor(msg.data.user_id),
               },
             ];
           }
@@ -213,10 +294,10 @@ export default function RoomDetail() {
 
   return (
     <AuthWrapper>
-      <div className="flex h-screen overflow-hidden">
-        <div className="flex flex-col flex-1 border-r">
+      <div className="flex h-screen overflow-hidden bg-gray-50">
+        <div className="flex flex-col flex-1 border-r border-gray-200 bg-white">
           {/* Header */}
-          <div className="flex items-center gap-3 border-b px-5 py-4 shrink-0">
+          <div className="flex items-center gap-3 border-b border-gray-200 px-5 py-4 shrink-0 bg-white">
             <button
               onClick={() => router.push("/rooms")}
               className="px-5 py-2 border border-gray-800 rounded-full bg-transparent text-[var(--foreground)] text-sm cursor-pointer hover:bg-gray-900/20 transition"
@@ -309,33 +390,77 @@ export default function RoomDetail() {
         </div>
 
         {/* ===== Right: Editor Panel ===== */}
-        <div className="w-[420px] p-8 bg-[var(--background)] overflow-y-auto">
-          {/* Connected Users */}
-          <div className="flex gap-2 mb-6">
-            {connectedUsers.length > 0 ? (
-              connectedUsers.map((user) => (
-                <div key={user.userId}>{user.userId}</div>
-              ))
+        <div className="flex-1 max-w-[600px] mx-auto overflow-y-auto bg-white">
+          <div className="px-12 py-12">
+            {/* Connected Users - Floating Top Right */}
+            <div className="flex gap-2 mb-8">
+              {connectedUsers.length > 0 && (
+                <TooltipProvider>
+                  {connectedUsers.map((user) => {
+                    const IconComponent = getUserIcon(user.userId);
+                    const color = getUserColor(user.userId);
+
+                    return (
+                      <Tooltip key={user.userId}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-sm"
+                            style={{ backgroundColor: color }}
+                          >
+                            <IconComponent size={16} className="text-white" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{user.userId}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </TooltipProvider>
+              )}
+            </div>
+
+            {/* Document Title */}
+            {isLoading ? (
+              <div className="h-12 w-64 animate-pulse bg-gray-100 rounded-lg mb-2" />
             ) : (
-              <div className="text-sm opacity-40">No users connected</div>
+              <input
+                type="text"
+                value={roomNameInput}
+                onChange={(e) => setRoomNameInput(e.target.value)}
+                onBlur={() => {
+                  const trimmedName = roomNameInput.trim();
+                  if (trimmedName && trimmedName !== data?.room.name) {
+                    updateRoomNameMutation.mutate(trimmedName);
+                  } else if (!trimmedName && data?.room.name) {
+                    setRoomNameInput(data.room.name);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.currentTarget.blur();
+                  } else if (e.key === "Escape") {
+                    setRoomNameInput(data?.room.name || "");
+                    e.currentTarget.blur();
+                  }
+                }}
+                className="text-5xl font-bold mb-4 bg-transparent border-none outline-none focus:outline-none w-full placeholder:text-gray-300"
+                placeholder="Untitled"
+              />
             )}
-          </div>
 
-          <div className="text-xs opacity-60 mb-1">
-            {roomData.name} / {roomData.subtitle}
-          </div>
-
-          <h1 className="text-3xl font-semibold mb-6">
-            {roomData.name} {roomData.subtitle}
-          </h1>
-
-          <div className="flex-1 min-h-0">
-            <CollaborativeEditor
-              documentId={docId}
-              userId={userId}
-              socket={socket}
-              socketConnected={socketConnected}
-            />
+            {/* Document Body */}
+            <div className="min-h-[600px]">
+              {initialYjsState !== null && (
+                <CollaborativeEditor
+                  documentId={docId}
+                  userId={userId}
+                  socket={socket}
+                  socketConnected={socketConnected}
+                  initialYjsState={initialYjsState}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>

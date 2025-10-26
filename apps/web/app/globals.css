@@ -120,3 +120,72 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Quill Editor - Google Docs Style */
+.ql-toolbar {
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  background: white !important;
+  padding: 12px 0 !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ql-container {
+  border: none !important;
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.ql-editor {
+  padding: 0 !important;
+  min-height: 600px;
+}
+
+.ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+  left: 0;
+}
+
+.ql-editor p {
+  margin-bottom: 0.75rem;
+}
+
+.ql-editor h1 {
+  font-size: 2em;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ql-editor h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ql-editor h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Clean toolbar button styling */
+.ql-toolbar button {
+  padding: 4px 6px !important;
+  margin: 0 2px !important;
+}
+
+.ql-toolbar button:hover {
+  background: #f3f4f6 !important;
+  border-radius: 4px;
+}
+
+.ql-toolbar .ql-active {
+  background: #e5e7eb !important;
+  border-radius: 4px;
+}
