@@ -149,7 +149,7 @@ export async function handleChatStream(
             let fullSuggestion = "";
             for await (const chunk of createStreamingCompletion(messages)) {
                 fullSuggestion += chunk;
-                socket.to(doc_id).emit("chunk", { key: `${user_id}:${stamp}`, data: chunk });
+                socket.server.to(doc_id).emit("chunk", { key: `${user_id}:${stamp}`, data: chunk });
             }
 
             console.log(fullSuggestion);
