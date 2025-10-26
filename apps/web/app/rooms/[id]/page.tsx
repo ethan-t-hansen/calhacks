@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useRoomSocket } from "../../hooks/useRoomSocket";
 import { useParams, useRouter } from "next/navigation";
 import CollaborativeEditor from "../../components/CollaborativeEditor";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface ConnectedUser {
   userId: string;
@@ -28,13 +30,14 @@ export default function RoomDetail() {
   const params = useParams();
   const docId = typeof params.id === "string" ? params.id : "";
 
-  const { socket, socketConnected, socketMessages, sendMessage } = useRoomSocket({
-    documentId: docId,
-    userId,
-    userName,
-    userColor,
-    autoConnect: true,
-  });
+  const { socket, socketConnected, socketMessages, sendMessage } =
+    useRoomSocket({
+      documentId: docId,
+      userId,
+      userName,
+      userColor,
+      autoConnect: true,
+    });
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -130,150 +133,78 @@ export default function RoomDetail() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        background: "var(--background)",
-      }}
-    >
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          borderRight: "1px solid #333",
-        }}
-      >
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid #333",
-            display: "flex",
-            gap: "12px",
-            alignItems: "center",
-          }}
-        >
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex flex-col flex-1 border-r">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b px-5 py-4 shrink-0">
           <button
-            style={{
-              padding: "8px 20px",
-              border: "1px solid #333",
-              borderRadius: "999px",
-              background: "transparent",
-              color: "var(--foreground)",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
             onClick={() => router.push("/rooms")}
+            className="px-5 py-2 border border-gray-800 rounded-full bg-transparent text-[var(--foreground)] text-sm cursor-pointer hover:bg-gray-900/20 transition"
           >
             ← exit room
           </button>
 
-          <div style={{ marginLeft: "auto", fontSize: "12px", opacity: 0.6 }}>
+          <div className="ml-auto text-xs opacity-60">
             {socketConnected ? "🟢 Connected" : "🔴 Disconnected"}
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-          {messages.length === 0 ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                flexDirection: "column",
-                gap: "12px",
-                opacity: 0.4,
-              }}
-            >
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <p style={{ fontSize: "14px" }}>
-                No messages yet. Start the conversation.
-              </p>
-            </div>
-          ) : (
-            messages.map((msg, i) => (
-              <div key={i} style={{ marginBottom: "24px" }}>
-                {msg.username && (
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      marginBottom: "8px",
-                      opacity: 0.6,
-                    }}
-                  >
-                    {msg.username}
-                  </div>
-                )}
-                <div
-                  style={{
-                    padding: "20px 24px",
-                    borderRadius: "16px",
-                    background:
-                      msg.role === "user"
-                        ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                        : "#1a1a1a",
-                    color: "#fff",
-                    lineHeight: "1.6",
-                    fontSize: "15px",
-                  }}
+        {/* Chat pane: make this fill remaining height */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Scrollable message list */}
+          <div className="flex-1 overflow-y-auto flex flex-col-reverse gap-6 pb-2 p-8">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 opacity-40 text-center">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="text-gray-400"
                 >
-                  {msg.content}
-                </div>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <p className="text-sm">
+                  No messages yet. Start the conversation.
+                </p>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              [...messages].reverse().map((msg, i) => (
+                <div key={i} className="leading-relaxed">
+                  {msg.username && (
+                    <div className="text-xs mb-1 opacity-60">
+                      {msg.username}
+                    </div>
+                  )}
+                  <div
+                    className={`px-4 py-2 rounded-2xl leading-relaxed w-fit max-w-[60%] break-words ${
+                      msg.role === "user"
+                        ? "bg-blue-500 text-white ml-auto"
+                        : "bg-stone-300 text-black"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
 
-        <div style={{ padding: "20px", borderTop: "1px solid #333" }}>
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              alignItems: "center",
-              border: "1px solid #333",
-              borderRadius: "12px",
-              padding: "4px 4px 4px 20px",
-            }}
-          >
-            <input
+          {/* Input */}
+          <div className="mt-4 flex gap-2 items-center shrink-0 px-8 pb-8">
+            <Input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Type your message here"
-              style={{
-                flex: 1,
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                color: "var(--foreground)",
-                fontSize: "14px",
-              }}
+              className="flex-1 bg-transparent border border-gray-300 rounded-md px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <button
+            <Button
               onClick={handleSend}
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "8px",
-                background: "#667eea",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              className="w-10 h-10 rounded-md bg-indigo-500 flex items-center justify-center hover:bg-indigo-600 transition"
             >
               <svg
                 width="20"
@@ -285,49 +216,38 @@ export default function RoomDetail() {
               >
                 <path d="M12 19V5M5 12l7-7 7 7" />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      <div
-        style={{
-          width: "420px",
-          padding: "32px",
-          background: "var(--background)",
-          overflowY: "auto",
-        }}
-      >
-        <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-          {connectedUsers.map((user, i) => (
-            <div
-              key={user.userId}
-              title={user.name}
-              style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: user.color,
-                cursor: "pointer",
-              }}
-            />
-          ))}
-          {connectedUsers.length === 0 && (
-            <div style={{ fontSize: "14px", opacity: 0.4 }}>
-              No users connected
-            </div>
+      {/* ===== Right: Editor Panel ===== */}
+      <div className="w-[420px] p-8 bg-[var(--background)] overflow-y-auto">
+        {/* Connected Users */}
+        <div className="flex gap-2 mb-6">
+          {connectedUsers.length > 0 ? (
+            connectedUsers.map((user) => (
+              <div
+                key={user.userId}
+                title={user.name}
+                style={{ background: user.color }}
+                className="w-8 h-8 rounded-full cursor-pointer"
+              />
+            ))
+          ) : (
+            <div className="text-sm opacity-40">No users connected</div>
           )}
         </div>
 
-        <div style={{ fontSize: "12px", marginBottom: "4px", opacity: 0.6 }}>
+        <div className="text-xs opacity-60 mb-1">
           {roomData.name} / {roomData.subtitle}
         </div>
 
-        <h1 style={{ fontSize: "32px", fontWeight: 600, marginBottom: "24px" }}>
+        <h1 className="text-3xl font-semibold mb-6">
           {roomData.name} {roomData.subtitle}
         </h1>
 
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div className="flex-1 min-h-0">
           <CollaborativeEditor
             documentId={docId}
             userId={userId}
