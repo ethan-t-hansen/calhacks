@@ -23,8 +23,8 @@ export function startDocumentPersistence() {
     }, 20000);
 }
 
-export async function handleJoin(socket: Socket, data: string) {
-    const dataParsed: { doc_id: string; user_id: string } = JSON.parse(data);
+export async function handleJoin(socket: Socket, data: any) {
+    const dataParsed: { doc_id: string; user_id: string } = data;
     const { doc_id, user_id } = dataParsed;
     console.log(`${user_id} joined document ${doc_id}`);
 

@@ -11,15 +11,15 @@ export function createCompletionRouter(io: any) {
 
     router.get("/ws", (req, res) => {
         res.json({ message: "connect to websocket using Socket.IO at the same host" });
-    });
+    }); 
 
     io.on("connection", (socket: Socket) => {
         console.log("client connected: ", socket.id);
 
-        socket.on("chat", (data: string) => handleChatStream(io, JSON.parse(data)));
-        socket.on("suggest", (data: string) => handleSuggestStream(io, JSON.parse(data)));
+        socket.on("chat", (data: any) => handleChatStream(io, data));
+        socket.on("suggest", (data: any) => handleSuggestStream(io, data));
         // socket.on("leave", (data: string) => handleLeave(socket, data));
-        // socket.on("disconnect", (data: string) => handleDisconnect(socket, data));
+        // socket.on("disconnect", (data: string) => handleDisconnect(socket));
         // socket.on("awareness", (data: string) => handleAwareness(socket, data));
         // socket.on("update", (data: string) => handleUpdate(socket, data));
     });

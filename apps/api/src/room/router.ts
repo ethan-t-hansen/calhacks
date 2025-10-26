@@ -18,10 +18,10 @@ export function createRoomRouter(io: any) {
     io.on("connection", (socket: Socket) => {
         console.log("client connected: ", socket.id);
 
-        socket.on("join", (data: string) => handleJoin(socket, data));
-        socket.on("leave", (data: string) => handleLeave(socket, data));
-        socket.on("awareness", (data: string) => handleAwareness(socket, data));
-        socket.on("update", (data: string) => handleUpdate(socket, data));
+        socket.on("join", (data: any) => handleJoin(socket, data));
+        socket.on("leave", (data: any) => handleLeave(socket, data));
+        socket.on("awareness", (data: any) => handleAwareness(socket, data));
+        socket.on("update", (data: any) => handleUpdate(socket, data));
     });
 
     return router;

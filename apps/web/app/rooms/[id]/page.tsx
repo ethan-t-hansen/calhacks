@@ -33,7 +33,7 @@ export default function RoomDetail() {
   const params = useParams();
   const docId = typeof params.id === "string" ? params.id : "";
 
-  const { socket, socketConnected, socketMessages, sendMessage } =
+  const { socket, socketConnected, socketMessages, sendChatMessage } =
     useRoomSocket({
       documentId: docId,
       userId,
@@ -107,42 +107,33 @@ export default function RoomDetail() {
     });
   }, [socketMessages, userId, processedMessageIds]);
 
-  const handleSend = () => {
+  const handleSend = (
+    requestCompletion = false,
+    position?: { range: { head: number; anchor: number } }
+  ) => {
     if (!input.trim()) return;
 
     const newMessage = {
       role: "user",
       content: input,
-      username: userName,
+      username: userId,
     };
 
-    setMessages([...messages, newMessage]);
-
+    setMessages((prev) => [...prev, newMessage]);
     setIsThinking(true);
 
-    setTimeout(() => {
-      const aiResponse = {
-        role: "ai",
-        content: "This is some AI generated stuff",
-        username: "Isaac Liu",
-      };
-      setMessages((currMessages) => [...currMessages, aiResponse]);
-      setIsThinking(false);
-    }, 3000);
+    const payload = {
+      doc_id: docId,
+      user_id: userId,
+      request_completion: requestCompletion,
+      message: input,
+      ...(position && { position }),
+    };
 
-    if (socketConnected) {
-      sendMessage({
-        type: "chat_message",
-        documentId: docId,
-        content: input,
-        userId,
-        userName,
-        timestamp: new Date().toISOString(),
-      });
-      console.log("message sent!");
-    }
+    sendChatMessage(payload); // Uses hook’s method internally
 
     setInput("");
+    console.log("handleSend(): chat message emitted", payload);
   };
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -247,7 +238,7 @@ export default function RoomDetail() {
                 placeholder="Type your message here"
                 className="flex-1 h-12 bg-white/90 backdrop-blur border border-gray-300 rounded-2xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button onClick={handleSend}>
+              <button onClick={() => handleSend()}>
                 <Squircle
                   cornerRadius={16}
                   cornerSmoothing={1}
