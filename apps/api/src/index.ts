@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createRoomRouter } from "./room/router";
+import { createCompletionRouter } from "./completion/router";
 
 dotenv.config();
 
@@ -18,7 +19,8 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
-app.use("/ws", createRoomRouter(io));
+app.use("/room", createRoomRouter(io));
+app.use("/completions", createCompletionRouter(io));
 
 app.get("/health", (req, res) => {
     res.json({ status: "ok" });

@@ -23,9 +23,10 @@ export function startDocumentPersistence() {
     }, 20000);
 }
 
-export function handleJoin(socket: Socket, data: string) {
+export async function handleJoin(socket: Socket, data: string) {
     const dataParsed: { doc_id: string; user_id: string } = JSON.parse(data);
     const { doc_id, user_id } = dataParsed;
+    console.log(`${user_id} joined document ${doc_id}`);
 
     if (!doc_id || !user_id) {
         socket.emit("error", { message: "Missing required fields" });
@@ -34,7 +35,17 @@ export function handleJoin(socket: Socket, data: string) {
     }
 
     if (!room_state.documents[doc_id]) {
-        room_state.documents[doc_id] = createDocumentState({ document_id: doc_id });
+        const persisted = await neonDAO.one((sql) => sql`SELECT * FROM yjs_document_states WHERE document_id=${doc_id}`);
+        if (persisted) {
+            console.log(persisted);
+            room_state.documents[doc_id] = createDocumentState({
+                document_id: doc_id,
+                state_vector: persisted.state_vector,
+                update: persisted.update_data
+            });
+        } else {
+            room_state.documents[doc_id] = createDocumentState({ document_id: doc_id });
+        }
     }
 
     room_state.documents[doc_id].active_users += 1;
@@ -44,22 +55,6 @@ export function handleJoin(socket: Socket, data: string) {
 }
 
 export async function handleLeave(socket: Socket, data: string) {
-    const dataParsed: { doc_id: string; user_id: string } = JSON.parse(data);
-    const { doc_id, user_id } = dataParsed;
-
-    if (room_state.documents[doc_id]) {
-        room_state.documents[doc_id].active_users = Math.max(0, room_state.documents[doc_id].active_users - 1);
-        if (room_state.documents[doc_id].active_users == 0) {
-            await neonDAO.persistDocument(room_state.documents[doc_id]);
-            delete room_state.documents[doc_id];
-        }
-    }
-
-    socket.leave(doc_id);
-    socket.to(doc_id).emit("user_left", { user_id });
-}
-
-export async function handleDisconnect(socket: Socket, data: string) {
     const dataParsed: { doc_id: string; user_id: string } = JSON.parse(data);
     const { doc_id, user_id } = dataParsed;
 
