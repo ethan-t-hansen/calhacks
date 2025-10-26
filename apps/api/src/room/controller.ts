@@ -24,8 +24,7 @@ export function startDocumentPersistence() {
 }
 
 export async function handleJoin(socket: Socket, data: any) {
-    const dataParsed: { doc_id: string; user_id: string } = data;
-    const { doc_id, user_id } = dataParsed;
+    const { doc_id, user_id } = data;
     console.log(`${user_id} joined document ${doc_id}`);
 
     if (!doc_id || !user_id) {
@@ -54,9 +53,8 @@ export async function handleJoin(socket: Socket, data: any) {
     socket.to(doc_id).emit("user_join", data);
 }
 
-export async function handleLeave(socket: Socket, data: string) {
-    const dataParsed: { doc_id: string; user_id: string } = JSON.parse(data);
-    const { doc_id, user_id } = dataParsed;
+export async function handleLeave(socket: Socket, data: any) {
+    const { doc_id, user_id } = data;
 
     if (room_state.documents[doc_id]) {
         room_state.documents[doc_id].active_users = Math.max(0, room_state.documents[doc_id].active_users - 1);
@@ -70,15 +68,13 @@ export async function handleLeave(socket: Socket, data: string) {
     socket.to(doc_id).emit("user_left", { user_id });
 }
 
-export function handleAwareness(socket: Socket, data: string) {
-    const dataParsed: { doc_id: string; user_id: string; state: "typing" | "idle" } = JSON.parse(data);
-    const { doc_id } = dataParsed;
-    socket.to(doc_id).emit("aware", dataParsed);
+export function handleAwareness(socket: Socket, data: { doc_id: string; user_id: string; state: "typing" | "idle" }) {
+    const { doc_id } = data;
+    socket.to(doc_id).emit("aware", data);
 }
 
-export function handleUpdate(socket: Socket, data: string) {
-    const dataParsed: { doc_id: string; update: Uint8Array } = JSON.parse(data);
-    const { doc_id, update } = dataParsed;
+export function handleUpdate(socket: Socket, data: any) {
+    const { doc_id, update } = data;
 
     if (!room_state.documents[doc_id]) {
         room_state.documents[doc_id] = createDocumentState({ document_id: doc_id });
@@ -86,5 +82,5 @@ export function handleUpdate(socket: Socket, data: string) {
 
     room_state.documents[doc_id].yjs_state.update = update;
     room_state.documents[doc_id].is_dirty = true;
-    socket.to(doc_id).emit("yjs", dataParsed);
+    socket.to(doc_id).emit("yjs", data);
 }

@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { Socket } from "socket.io";
 import { startDocumentPersistence, handleJoin, handleLeave, handleAwareness, handleUpdate } from "./controller";
+import { handleChatStream } from "../completion/controller";
+import { neonDAO } from "../database/neon";
+import { createDocumentState } from "../document/document";
 
 export function createRoomRouter(io: any) {
     const router = Router();
@@ -11,17 +14,77 @@ export function createRoomRouter(io: any) {
         res.json({ message: "route for rooms" });
     });
 
-    router.get("/ws", (req, res) => {
-        res.json({ message: "connect to websocket using Socket.IO at the same host" });
-    });
-
     io.on("connection", (socket: Socket) => {
         console.log("client connected: ", socket.id);
 
-        socket.on("join", (data: any) => handleJoin(socket, data));
-        socket.on("leave", (data: any) => handleLeave(socket, data));
-        socket.on("awareness", (data: any) => handleAwareness(socket, data));
-        socket.on("update", (data: any) => handleUpdate(socket, data));
+        socket.on("join", (data) => handleJoin(socket, data));
+        socket.on("leave", (data) => handleLeave(socket, data));
+        socket.on("awareness", (data) => handleAwareness(socket, data));
+        socket.on("update", (data) => handleUpdate(socket, data));
+        socket.on("chat", (data) => handleChatStream(io, JSON.parse(data)));
+    });
+
+    router.get("/rehydrate/:doc_id/:user_id", async (req, res) => {
+        const { doc_id, user_id } = req.params;
+
+        if (!doc_id || !user_id) {
+            res.status(400).json({ error: "Missing doc_id or user_id" });
+            return;
+        }
+
+        let document = req.app.get("room_state")?.documents?.[doc_id];
+        if (!document) {
+            const [persisted, messages] = await Promise.all([
+                neonDAO.one((sql: any) => sql`SELECT * FROM yjs_document_states WHERE document_id=${doc_id}`),
+                neonDAO.many((sql: any) => sql`SELECT * FROM chat_messages WHERE document_id=${doc_id} ORDER BY timestamp DESC LIMIT 10`)
+            ]);
+
+            const user_to_message: { [userId: string]: any[] } = {};
+            const message_log: { role: string; message: string }[] = [];
+
+            for (let i = 0; i < messages.length; i++) {
+                const msg = messages[i];
+
+                message_log.push({
+                    role: msg.user_id === "ai" ? "assistant" : "user",
+                    message: msg.message
+                });
+
+                if (msg.user_id != "ai") {
+                    if (!user_to_message[msg.user_id]) {
+                        user_to_message[msg.user_id] = [msg];
+                    } else {
+                        user_to_message[msg.user_id]!.push(msg);
+                    }
+                } else {
+                    if (!user_to_message[msg.reply_to ?? ""]) {
+                        user_to_message[msg.reply_to ?? ""] = [msg];
+                    } else {
+                        user_to_message[msg.reply_to ?? ""]!.push(msg);
+                    }
+                }
+            }
+
+            if (persisted) {
+                document = createDocumentState({
+                    document_id: doc_id,
+                    state_vector: persisted.state_vector,
+                    update: persisted.update_data,
+                    message_log,
+                    user_to_message
+                });
+            } else {
+                document = createDocumentState({ document_id: doc_id, message_log, user_to_message });
+            }
+        }
+
+        res.json({
+            yjs_state: document.yjs_state,
+            message_log: document.message_log,
+            user_to_message: document.user_to_message,
+            active_users: document.active_users,
+            is_dirty: document.is_dirty
+        });
     });
 
     return router;
