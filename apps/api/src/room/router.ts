@@ -4,6 +4,7 @@ import { startDocumentPersistence, handleJoin, handleLeave, handleAwareness, han
 import { handleChatStream } from "../completion/controller";
 import { neonDAO } from "../database/neon";
 import { createDocumentState } from "../document/document";
+import { ChatMessage } from "../completion/types";
 
 export function createRoomRouter(io: any) {
     const router = Router();
@@ -38,28 +39,27 @@ export function createRoomRouter(io: any) {
                 neonDAO.many((sql: any) => sql`SELECT * FROM chat_messages WHERE document_id=${doc_id} ORDER BY timestamp DESC LIMIT 10`)
             ]);
 
-            const user_to_message: { [userId: string]: any[] } = {};
-            const message_log: { role: string; message: string }[] = [];
+            const user_to_message: { [userId: string]: number[] } = {};
+            const message_log: ChatMessage[] = [];
 
             for (let i = 0; i < messages.length; i++) {
                 const msg = messages[i];
 
-                message_log.push({
-                    role: msg.user_id === "ai" ? "assistant" : "user",
-                    message: msg.message
-                });
+                message_log.push(msg);
+                const messageIndex = message_log.length - 1;
 
                 if (msg.user_id != "ai") {
                     if (!user_to_message[msg.user_id]) {
-                        user_to_message[msg.user_id] = [msg];
+                        user_to_message[msg.user_id] = [messageIndex];
                     } else {
-                        user_to_message[msg.user_id]!.push(msg);
+                        user_to_message[msg.user_id]!.push(messageIndex);
                     }
                 } else {
-                    if (!user_to_message[msg.reply_to ?? ""]) {
-                        user_to_message[msg.reply_to ?? ""] = [msg];
+                    const replyToUser = msg.reply_to ?? "";
+                    if (!user_to_message[replyToUser]) {
+                        user_to_message[replyToUser] = [messageIndex];
                     } else {
-                        user_to_message[msg.reply_to ?? ""]!.push(msg);
+                        user_to_message[replyToUser]!.push(messageIndex);
                     }
                 }
             }
