@@ -10,8 +10,8 @@ interface YjsDocumentState {
 
 export interface DocumentState {
     yjs_state: YjsDocumentState;
-    message_log: { role: string; message: string }[];
-    user_to_message: { [key: string]: ChatMessage[] };
+    message_log: ChatMessage[];
+    user_to_message: { [key: string]: number[] };
     active_users: number;
     is_dirty: boolean;
 }

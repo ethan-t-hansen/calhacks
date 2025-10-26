@@ -5,8 +5,8 @@ export function createDocumentState(params: {
     document_id: string;
     state_vector?: Uint8Array;
     update?: Uint8Array;
-    message_log?: { role: string; message: string }[];
-    user_to_message?: { [key: string]: ChatMessage[] };
+    message_log?: ChatMessage[];
+    user_to_message?: { [key: string]: number[] };
 }): DocumentState {
     return {
         yjs_state: {

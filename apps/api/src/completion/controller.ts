@@ -72,20 +72,26 @@ export async function handleChatStream(
         )) as ChatMessage[];
 
         console.log("parsing messages");
-        const user_to_message: { [userId: string]: ChatMessage[] } = {};
+        const user_to_message: { [userId: string]: number[] } = {};
+        const message_log: ChatMessage[] = [];
+
         for (let i = 0; i < messages.length; i++) {
             const msg = messages[i] as ChatMessage;
+            message_log.push(msg);
+            const messageIndex = message_log.length - 1;
+
             if (msg.user_id != "ai") {
                 if (!user_to_message[msg.user_id]) {
-                    user_to_message[msg.user_id] = [msg];
+                    user_to_message[msg.user_id] = [messageIndex];
                 } else {
-                    user_to_message[msg.user_id]!.push(msg);
+                    user_to_message[msg.user_id]!.push(messageIndex);
                 }
             } else {
-                if (!user_to_message[msg.reply_to ?? ""]) {
-                    user_to_message[msg.reply_to ?? ""] = [msg];
+                const replyToUser = msg.reply_to ?? "";
+                if (!user_to_message[replyToUser]) {
+                    user_to_message[replyToUser] = [messageIndex];
                 } else {
-                    user_to_message[msg.reply_to ?? ""]!.push(msg);
+                    user_to_message[replyToUser]!.push(messageIndex);
                 }
             }
         }
@@ -94,6 +100,7 @@ export async function handleChatStream(
         document = createDocumentState({
             document_id: doc_id,
             ...(persistedDoc && { state_vector: persistedDoc.state_vector }),
+            message_log,
             user_to_message
         });
     }
@@ -126,7 +133,16 @@ export async function handleChatStream(
         const ytext = ydoc.getText("content");
         const documentContent = ytext.toString();
 
-        const userMessages = document.user_to_message[user_id]?.map((msg) => `from:${msg.user_id} content:${msg.message ?? ""}`).join("\n");
+        const userMessages = document.user_to_message[user_id]
+            ?.map((idx: number) => {
+                const msg = messages?.[idx];
+                if (!msg) return "";
+                if ("user_id" in msg && "message" in msg) {
+                    return `from:${msg.user_id} content:${msg.message ?? ""}`;
+                }
+                return "";
+            })
+            .join("\n");
         const systemPrompt = buildChatSystemPrompt(documentContent + userMessages, "Not Applicable: Whole Document", message);
         const messages = [{ role: "system" as const, content: systemPrompt }];
 
