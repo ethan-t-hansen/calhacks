@@ -130,63 +130,27 @@ export default function RoomDetail() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        background: "var(--background)",
-      }}
-    >
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          borderRight: "1px solid #333",
-        }}
-      >
-        <div
-          style={{
-            padding: "16px 20px",
-            borderBottom: "1px solid #333",
-            display: "flex",
-            gap: "12px",
-            alignItems: "center",
-          }}
-        >
+    <div className="flex h-screen bg-[var(--background)]">
+      {/* ===== Left: Chat Panel ===== */}
+      <div className="flex flex-col flex-1 border-r border-gray-800">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-gray-800 px-5 py-4">
           <button
-            style={{
-              padding: "8px 20px",
-              border: "1px solid #333",
-              borderRadius: "999px",
-              background: "transparent",
-              color: "var(--foreground)",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-            onClick={() => router.push("/rooms")}
+            onClick={() => router.push('/rooms')}
+            className="px-5 py-2 border border-gray-800 rounded-full bg-transparent text-[var(--foreground)] text-sm cursor-pointer hover:bg-gray-900/20 transition"
           >
             ← exit room
           </button>
-
-          <div style={{ marginLeft: "auto", fontSize: "12px", opacity: 0.6 }}>
-            {socketConnected ? "🟢 Connected" : "🔴 Disconnected"}
+  
+          <div className="ml-auto text-xs opacity-60">
+            {socketConnected ? '🟢 Connected' : '🔴 Disconnected'}
           </div>
         </div>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+  
+        {/* Message List */}
+        <div className="flex-1 overflow-y-auto p-6">
           {messages.length === 0 ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                flexDirection: "column",
-                gap: "12px",
-                opacity: 0.4,
-              }}
-            >
+            <div className="flex flex-col items-center justify-center h-full gap-3 opacity-40 text-center">
               <svg
                 width="48"
                 height="48"
@@ -194,39 +158,24 @@ export default function RoomDetail() {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
+                className="text-gray-400"
               >
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              <p style={{ fontSize: "14px" }}>
-                No messages yet. Start the conversation.
-              </p>
+              <p className="text-sm">No messages yet. Start the conversation.</p>
             </div>
           ) : (
             messages.map((msg, i) => (
-              <div key={i} style={{ marginBottom: "24px" }}>
+              <div key={i} className="mb-6">
                 {msg.username && (
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      marginBottom: "8px",
-                      opacity: 0.6,
-                    }}
-                  >
-                    {msg.username}
-                  </div>
+                  <div className="text-xs mb-2 opacity-60">{msg.username}</div>
                 )}
                 <div
-                  style={{
-                    padding: "20px 24px",
-                    borderRadius: "16px",
-                    background:
-                      msg.role === "user"
-                        ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                        : "#1a1a1a",
-                    color: "#fff",
-                    lineHeight: "1.6",
-                    fontSize: "15px",
-                  }}
+                  className={`p-5 rounded-2xl text-white leading-relaxed text-[15px] ${
+                    msg.role === 'user'
+                      ? 'bg-gradient-to-tr from-indigo-500 to-purple-700'
+                      : 'bg-[#1a1a1a]'
+                  }`}
                 >
                   {msg.content}
                 </div>
@@ -234,46 +183,21 @@ export default function RoomDetail() {
             ))
           )}
         </div>
-
-        <div style={{ padding: "20px", borderTop: "1px solid #333" }}>
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              alignItems: "center",
-              border: "1px solid #333",
-              borderRadius: "12px",
-              padding: "4px 4px 4px 20px",
-            }}
-          >
+  
+        {/* Input Bar */}
+        <div className="p-5 border-t border-gray-800">
+          <div className="flex items-center gap-3 border border-gray-800 rounded-xl px-5 py-1.5">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Type your message here"
-              style={{
-                flex: 1,
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                color: "var(--foreground)",
-                fontSize: "14px",
-              }}
+              className="flex-1 bg-transparent border-none outline-none text-[var(--foreground)] text-sm"
             />
             <button
               onClick={handleSend}
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "8px",
-                background: "#667eea",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              className="w-10 h-10 rounded-md bg-indigo-500 flex items-center justify-center hover:bg-indigo-600 transition"
             >
               <svg
                 width="20"
@@ -289,45 +213,34 @@ export default function RoomDetail() {
           </div>
         </div>
       </div>
-
-      <div
-        style={{
-          width: "420px",
-          padding: "32px",
-          background: "var(--background)",
-          overflowY: "auto",
-        }}
-      >
-        <div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-          {connectedUsers.map((user, i) => (
-            <div
-              key={user.userId}
-              title={user.name}
-              style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: user.color,
-                cursor: "pointer",
-              }}
-            />
-          ))}
-          {connectedUsers.length === 0 && (
-            <div style={{ fontSize: "14px", opacity: 0.4 }}>
-              No users connected
-            </div>
+  
+      {/* ===== Right: Editor Panel ===== */}
+      <div className="w-[420px] p-8 bg-[var(--background)] overflow-y-auto">
+        {/* Connected Users */}
+        <div className="flex gap-2 mb-6">
+          {connectedUsers.length > 0 ? (
+            connectedUsers.map((user) => (
+              <div
+                key={user.userId}
+                title={user.name}
+                style={{ background: user.color }}
+                className="w-8 h-8 rounded-full cursor-pointer"
+              />
+            ))
+          ) : (
+            <div className="text-sm opacity-40">No users connected</div>
           )}
         </div>
-
-        <div style={{ fontSize: "12px", marginBottom: "4px", opacity: 0.6 }}>
+  
+        <div className="text-xs opacity-60 mb-1">
           {roomData.name} / {roomData.subtitle}
         </div>
-
-        <h1 style={{ fontSize: "32px", fontWeight: 600, marginBottom: "24px" }}>
+  
+        <h1 className="text-3xl font-semibold mb-6">
           {roomData.name} {roomData.subtitle}
         </h1>
-
-        <div style={{ flex: 1, minHeight: 0 }}>
+  
+        <div className="flex-1 min-h-0">
           <CollaborativeEditor
             documentId={docId}
             userId={userId}
