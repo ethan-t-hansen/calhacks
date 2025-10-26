@@ -53,16 +53,49 @@ export default function RoomDetail() {
 
   useEffect(() => {
     console.log(socketMessages);
-  }, [socketMessages])
+  }, [socketMessages]);
+
+  useEffect(() => {
+    const rehydrateChat = async () => {
+      if (!docId || !userId) return;
+
+      try {
+        const response = await fetch(
+          `http://localhost:3001/room/rehydrate/${docId}/${userId}`
+        );
+
+        if (!response.ok) {
+          console.error("Failed to rehydrate chat");
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.message_log && Array.isArray(data.message_log)) {
+          const rehydratedMessages = data.message_log.map((msg: any) => ({
+            role: msg.user_id === "ai" ? "assistant" : "user",
+            content: msg.message,
+            username: msg.user_id,
+          }));
+
+          setMessages(rehydratedMessages.reverse());
+        }
+      } catch (error) {
+        console.error("Error rehydrating chat:", error);
+      }
+    };
+
+    rehydrateChat();
+  }, [docId, userId]);
 
   useEffect(() => {
     socketMessages.forEach((msg) => {
       const msgId = `${msg.type}-${msg.timestamp}`;
-  
+
       if (processedMessageIds.has(msgId)) {
         return;
       }
-  
+
       if (msg.type === "user_join" && msg.data) {
         setConnectedUsers((prev) => {
           const exists = prev.some((u) => u.userId === msg.data.user_id);
@@ -114,7 +147,7 @@ export default function RoomDetail() {
           }
         });
       }
-  
+
       setProcessedMessageIds((prev) => new Set(prev).add(msgId));
     });
   }, [socketMessages, userId, processedMessageIds]);
@@ -246,7 +279,7 @@ export default function RoomDetail() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onKeyDown={(e) => e.key === "Enter" && handleSend(true)}
                 placeholder="Type your message here"
                 className="flex-1 h-12 bg-white/90 backdrop-blur border border-gray-300 rounded-2xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
               />

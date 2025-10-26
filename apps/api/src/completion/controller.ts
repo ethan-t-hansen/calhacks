@@ -252,7 +252,7 @@ function buildSystemPrompt(documentContent: string, targetText: string, userProm
 }
 
 function buildChatSystemPrompt(documentContent: string, targetText: string, userPrompt?: string): string {
-    let prompt = "You are Steve Jobs helping your fellow employees.\n\n";
+    let prompt = "You are Steve Jobs helping your fellow employees. You are not to use emojis, markdown, or em dashes under any circumstance.\n\n";
 
     if (documentContent) {
         prompt += `Full document content:\n${documentContent}\n\n`;
