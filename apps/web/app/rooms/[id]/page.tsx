@@ -83,6 +83,7 @@ export default function RoomDetail() {
           prev.filter((u) => u.userId !== msg.data.user_id)
         );
       } else if (msg.type === "chat" && msg.data) {
+        console.log(msg);
         if (msg.data.username !== userId) {
           setMessages((prev) => [
             ...prev,
@@ -212,8 +213,8 @@ export default function RoomDetail() {
                   <div
                     key={i}
                     className={cn(
-                      "flex flex-col w-full border",
-                      msg.username !== userId ? "items-start" : "items-end"
+                      "flex flex-col w-full",
+                      msg.username === userId ? "items-end" : "items-start"
                     )}
                   >
                     {msg.username && userId !== msg.username && (
@@ -225,7 +226,7 @@ export default function RoomDetail() {
                       cornerRadius={16}
                       cornerSmoothing={1}
                       className={`px-4 py-2 inline-block max-w-[60%] ${
-                        msg.role === "user"
+                        userId === msg.username
                           ? "bg-blue-500 text-white ml-auto"
                           : "bg-stone-300 text-black"
                       }`}

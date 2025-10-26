@@ -10,8 +10,6 @@ import { Awareness } from "y-protocols/awareness.js";
 interface CollaborativeEditorProps {
   documentId: string;
   userId: string;
-  userName: string;
-  userColor: string;
   socket: Socket | null;
   socketConnected: boolean;
 }

@@ -39,9 +39,49 @@ export function useRoomSocket({
   const [socketMessages, setSocketMessages] = useState<SocketMessage[]>([]);
   const socketRef = useRef<Socket | null>(null);
 
+  const sendChatMessage = (payload: {
+    doc_id: string;
+    user_id: string;
+    request_completion: boolean;
+    message: string;
+    position?: { range: { head: number; anchor: number } };
+  }) => {
+    if (!socketRef.current?.connected) {
+      console.error("Socket not connected — cannot send chat payload");
+      return;
+    }
+    socketRef.current.emit("chat", payload);
+  };
+
+  const sendAwareness = (data: any) => {
+    socketRef.current?.emit("awareness", data);
+  };
+
+  const sendYjsUpdate = (update: Uint8Array) => {
+    socketRef.current?.emit("update", {
+      documentId,
+      userId,
+      update,
+    });
+  };
+
+  const leaveRoom = () => {
+    socketRef.current?.emit("leave", {
+      doc_id: documentId,
+      user_id: userId,
+    });
+  };
+
+  const disconnectSocket = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  };
+
   const connectSocket = () => {
     if (!userId) {
-      console.error("Missing required user information");
+      console.error("Missing userId");
       return;
     }
 
@@ -49,7 +89,6 @@ export function useRoomSocket({
       socketRef.current.disconnect();
     }
 
-    // Match backend socket root
     const socket = io("http://localhost:3001");
     socketRef.current = socket;
 
@@ -88,28 +127,28 @@ export function useRoomSocket({
         { type: "user_join", data, timestamp: new Date().toISOString() },
       ]);
     });
-    
+
     socket.on("user_left", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
         { type: "user_left", data, timestamp: new Date().toISOString() },
       ]);
     });
-    
+
     socket.on("aware", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
         { type: "aware", data, timestamp: new Date().toISOString() },
       ]);
     });
-    
+
     socket.on("yjs", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
         { type: "yjs", data, timestamp: new Date().toISOString() },
       ]);
     });
-    
+
     socket.on("chat", (data: any) => {
       const { doc_id, user_id, message, position } = data;
       const newMessage: SocketMessage = {
@@ -125,7 +164,7 @@ export function useRoomSocket({
       };
       setSocketMessages((prev) => [...prev, newMessage]);
     });
-    
+
     socket.on("chunk", (data: any) => {
       setSocketMessages((prev) => [
         ...prev,
@@ -134,58 +173,17 @@ export function useRoomSocket({
     });
   };
 
-  const disconnectSocket = () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-  };
-
-  // Matches the controller "chat" route
-  const sendChatMessage = (payload: {
-    doc_id: string;
-    user_id: string;
-    request_completion: boolean;
-    message: string;
-    position?: { range: { head: number; anchor: number } };
-  }) => {
-    if (!socketRef.current?.connected) {
-      console.error("Socket not connected — cannot send chat payload");
-      return;
-    }
-    socketRef.current.emit("chat", payload);
-  };
-
-  // Matches controller "awareness" handler
-  const sendAwareness = (data: any) => {
-    socketRef.current?.emit("awareness", data);
-  };
-
-  // Matches controller "update" handler
-  const sendYjsUpdate = (update: Uint8Array) => {
-    socketRef.current?.emit("update", {
-      documentId,
-      userId,
-      update,
-    });
-  };
-
-  // Matches controller "leave" handler
-  const leaveRoom = () => {
-    socketRef.current?.emit("leave", {
-      documentId,
-      userId,
-    });
-  };
-
   useEffect(() => {
     if (autoConnect && userId && documentId) {
+      console.log("Auto-connecting socket with userId:", userId);
       connectSocket();
     }
 
     return () => {
-      leaveRoom();
-      disconnectSocket();
+      if (socketRef.current) {
+        leaveRoom();
+        disconnectSocket();
+      }
     };
   }, [autoConnect, documentId, userId]);
 

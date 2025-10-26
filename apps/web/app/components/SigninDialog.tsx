@@ -26,6 +26,7 @@ export function SigninDialog() {
     saveUserIdentity({
       userId: tempId,
     });
+    window.location.reload();
   };
 
   return (
