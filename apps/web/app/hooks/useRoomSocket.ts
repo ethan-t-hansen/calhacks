@@ -4,8 +4,6 @@ import { io, Socket } from "socket.io-client";
 interface UseRoomSocketProps {
   documentId: string;
   userId: string;
-  userName: string;
-  userColor: string;
   autoConnect?: boolean;
 }
 
@@ -17,27 +15,73 @@ interface SocketMessage {
 }
 
 export function useRoomSocket({
-    documentId,
-    userId,
-    userName,
-    userColor,
-    autoConnect = false
-  }: UseRoomSocketProps): {
-    socketConnected: boolean;
-    socketMessages: SocketMessage[];
-    connectSocket: () => void;
-    disconnectSocket: () => void;
-    sendMessage: (message: any) => void;
-    sendYjsUpdate: (update: Uint8Array) => void;
-    socket: Socket | null;
-  } {
-    const [socketConnected, setSocketConnected] = useState(false);
-    const [socketMessages, setSocketMessages] = useState<SocketMessage[]>([]);
-    const socketRef = useRef<Socket | null>(null);
+  documentId,
+  userId,
+  autoConnect = false,
+}: UseRoomSocketProps): {
+  socketConnected: boolean;
+  socketMessages: SocketMessage[];
+  connectSocket: () => void;
+  disconnectSocket: () => void;
+  sendChatMessage: (payload: {
+    doc_id: string;
+    user_id: string;
+    request_completion: boolean;
+    message: string;
+    position?: { range: { head: number; anchor: number } };
+  }) => void;
+  sendAwareness: (data: any) => void;
+  sendYjsUpdate: (update: Uint8Array) => void;
+  leaveRoom: () => void;
+  socket: Socket | null;
+} {
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [socketMessages, setSocketMessages] = useState<SocketMessage[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+
+  const sendChatMessage = (payload: {
+    doc_id: string;
+    user_id: string;
+    request_completion: boolean;
+    message: string;
+    position?: { range: { head: number; anchor: number } };
+  }) => {
+    if (!socketRef.current?.connected) {
+      console.error("Socket not connected — cannot send chat payload");
+      return;
+    }
+    socketRef.current.emit("chat", payload);
+  };
+
+  const sendAwareness = (data: any) => {
+    socketRef.current?.emit("awareness", data);
+  };
+
+  const sendYjsUpdate = (update: Uint8Array) => {
+    socketRef.current?.emit("update", {
+      documentId,
+      userId,
+      update,
+    });
+  };
+
+  const leaveRoom = () => {
+    socketRef.current?.emit("leave", {
+      doc_id: documentId,
+      user_id: userId,
+    });
+  };
+
+  const disconnectSocket = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  };
 
   const connectSocket = () => {
-    if (!userId || !userName || !userColor) {
-      console.error("Missing required user information");
+    if (!userId) {
+      console.error("Missing userId");
       return;
     }
 
@@ -52,14 +96,16 @@ export function useRoomSocket({
       setSocketConnected(true);
       setSocketMessages((prev) => [
         ...prev,
-        { type: "connection", message: "Connected to Socket.IO", timestamp: new Date().toISOString() }
+        {
+          type: "connection",
+          message: "Connected to Socket.IO",
+          timestamp: new Date().toISOString(),
+        },
       ]);
 
-      socket.emit("join-room", {
-        documentId,
-        userId,
-        name: userName,
-        color: userColor
+      socket.emit("join", {
+        doc_id: documentId,
+        user_id: userId,
       });
     });
 
@@ -67,85 +113,96 @@ export function useRoomSocket({
       setSocketConnected(false);
       setSocketMessages((prev) => [
         ...prev,
-        { type: "connection", message: "Disconnected from Socket.IO", timestamp: new Date().toISOString() }
+        {
+          type: "connection",
+          message: "Disconnected from Socket.IO",
+          timestamp: new Date().toISOString(),
+        },
       ]);
     });
 
-    socket.on("user-joined", (data: any) => {
-      setSocketMessages((prev) => [...prev, { type: "user-joined", data, timestamp: new Date().toISOString() }]);
+    socket.on("user_join", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "user_join", data, timestamp: new Date().toISOString() },
+      ]);
     });
 
-    socket.on("user-left", (data: any) => {
-      setSocketMessages((prev) => [...prev, { type: "user-left", data, timestamp: new Date().toISOString() }]);
+    socket.on("user_left", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "user_left", data, timestamp: new Date().toISOString() },
+      ]);
     });
 
-    socket.on("message", (data: any) => {
-      setSocketMessages((prev) => [...prev, { type: "message", data, timestamp: new Date().toISOString() }]);
+    socket.on("aware", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "aware", data, timestamp: new Date().toISOString() },
+      ]);
     });
 
-    socket.on("ai-message", (data: any) => {
-      setSocketMessages((prev) => [...prev, { type: "ai-message", data, timestamp: new Date().toISOString() }]);
+    socket.on("yjs", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "yjs", data, timestamp: new Date().toISOString() },
+      ]);
     });
 
-    socket.on("yjs-update", (data: any) => {
-      setSocketMessages((prev) => [...prev, { type: "yjs-update", data, timestamp: new Date().toISOString() }]);
+    socket.on("room_state", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "room_state", data, timestamp: new Date().toISOString() },
+      ]);
     });
 
-    socket.on("suggestion-resolution", (data: any) => {
-      setSocketMessages((prev) => [...prev, { type: "suggestion-resolution", data, timestamp: new Date().toISOString() }]);
+    socket.on("chat", (data: any) => {
+      const { doc_id, user_id, message, position } = data;
+      const newMessage: SocketMessage = {
+        type: "chat",
+        data: {
+          role: user_id === "ai" ? "ai" : "user",
+          content: message,
+          username: user_id,
+          position,
+        },
+        message,
+        timestamp: new Date().toISOString(),
+      };
+      setSocketMessages((prev) => [...prev, newMessage]);
     });
 
-    socket.on("error", (error: any) => {
-      setSocketMessages((prev) => [...prev, { type: "error", message: error.message, timestamp: new Date().toISOString() }]);
-    });
-  };
-
-  const disconnectSocket = () => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-  };
-
-  const sendMessage = (message: any) => {
-    if (!socketRef.current || !socketRef.current.connected) {
-      console.error("Socket not connected");
-      return;
-    }
-    socketRef.current.emit("message", message);
-  };
-
-  const sendYjsUpdate = (update: Uint8Array) => {
-    if (!socketRef.current || !socketRef.current.connected) {
-      console.error("Socket not connected");
-      return;
-    }
-    socketRef.current.emit("yjs-update", {
-      documentId,
-      userId,
-      update
+    socket.on("chunk", (data: any) => {
+      setSocketMessages((prev) => [
+        ...prev,
+        { type: "chunk", data, timestamp: new Date().toISOString() },
+      ]);
     });
   };
 
   useEffect(() => {
-    if (autoConnect && userId && userName && userColor) {
+    if (autoConnect && userId && documentId) {
+      console.log("Auto-connecting socket with userId:", userId);
       connectSocket();
     }
 
     return () => {
       if (socketRef.current) {
-        socketRef.current.disconnect();
+        leaveRoom();
+        disconnectSocket();
       }
     };
-  }, [autoConnect, documentId, userId, userName, userColor]);
+  }, [autoConnect, documentId, userId]);
 
   return {
     socketConnected,
     socketMessages,
     connectSocket,
     disconnectSocket,
-    sendMessage,
+    sendChatMessage,
+    sendAwareness,
     sendYjsUpdate,
-    socket: socketRef.current
+    leaveRoom,
+    socket: socketRef.current,
   };
 }
